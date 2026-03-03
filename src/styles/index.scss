@@ -1,0 +1,59 @@
+@use 'variables' as *;
+
+/* Reset 样式 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+page {
+  background-color: $color-bg-page;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+  line-height: 1.5;
+}
+
+/* 全局入场动画 */
+.fade-in-enter-active {
+  transition: all $transition-base ease-out;
+}
+
+.fade-in-leave-active {
+  transition: all $transition-fast ease-in;
+}
+
+.fade-in-enter-from,
+.fade-in-leave-to {
+  opacity: 0;
+  transform: translateY(16rpx);
+}
+
+/* 列表过渡动画 */
+.list-item-enter-active {
+  transition: all $transition-base ease-out;
+}
+
+.list-item-leave-active {
+  transition: all $transition-fast ease-in;
+}
+
+.list-item-enter-from {
+  opacity: 0;
+  transform: translateX(-20rpx);
+}
+
+.list-item-leave-to {
+  opacity: 0;
+  transform: translateX(20rpx);
+}
+
+/* 按钮按压态阴影 */
+.btn-shadow-default {
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.12);
+}
+
+.btn-shadow-active {
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.08);
+  transform: translateY(2rpx);
+}

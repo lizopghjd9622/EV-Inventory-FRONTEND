@@ -1,0 +1,86 @@
+import { useVoiceOrderStore } from '@/stores/voiceOrder'
+import { OrderType, RecordStatus, SseEventType } from '@/constants'
+import { streamUploadAudio } from '@/platform/h5/streamRequest'
+import type { SseExtractedPayload, SseOrderCreatedPayload, SseErrorPayload } from '@/types/api/order'
+
+/**
+ * 生成前端唯一 clientId（不依赖外部库）
+ */
+function generateClientId(): string {
+  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+/**
+ * 语音录单流程编排 Composable
+ *
+ * 负责协调录音上传、SSE 事件分发和 Store 状态更新
+ */
+export function useVoiceOrder() {
+  const store = useVoiceOrderStore()
+
+  let abortController: AbortController | null = null
+
+  /**
+   * 开始上传录音并监听 SSE 流式结果
+   * @param blob - 录音 Blob
+   */
+  async function startVoiceOrder(blob: Blob): Promise<void> {
+    store.setStatus(RecordStatus.Streaming)
+    abortController = new AbortController()
+
+    try {
+      await streamUploadAudio(
+        blob,
+        store.orderType as OrderType,
+        {
+          onEvent(eventType, data) {
+            if (eventType === SseEventType.EXTRACTED) {
+              const payload = data as SseExtractedPayload
+              store.appendItem({
+                clientId: generateClientId(),
+                name: payload.name,
+                quantity: payload.quantity,
+                unit: payload.unit,
+                price: payload.price,
+                cost: payload.cost,
+              })
+            } else if (eventType === SseEventType.ORDER_CREATED) {
+              const payload = data as SseOrderCreatedPayload
+              store.setOrderId(payload.order_id)
+            } else if (eventType === SseEventType.ERROR) {
+              const payload = data as SseErrorPayload
+              store.setError(payload.message)
+            }
+          },
+          onDone() {
+            // 正常结束不需要额外操作，状态已由 ORDER_CREATED 变为 Done
+          },
+          onError(err) {
+            store.setError(err.message)
+          },
+        },
+        abortController.signal,
+      )
+    } catch (err) {
+      // AbortError 不触发错误状态
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return
+      }
+      const message = err instanceof Error ? err.message : '语音识别失败，请重试'
+      store.setError(message)
+    }
+  }
+
+  /**
+   * 取消当前流式请求
+   */
+  function cancel(): void {
+    abortController?.abort()
+    abortController = null
+  }
+
+  return {
+    startVoiceOrder,
+    cancel,
+  }
+}
