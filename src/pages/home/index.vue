@@ -105,13 +105,9 @@ onMounted(() => {
 })
 
 onShow(() => {
-  // 从订单详情页返回时，若状态是 Done/Streaming，重置为 Idle 让按钮可用
-  if (
-    store.status === RecordStatus.Done ||
-    store.status === RecordStatus.Streaming
-  ) {
-    store.initSession(store.orderType as OrderType)
-  }
+  // order-detail 页面正常敏消时会在 onUnload 里重置。
+  // 这里仅处理极端情况：order-detail onUnload 未执行但状态仍卡在 Done
+  // （如浏览器制高层导航），居安危不乱动
 })
 
 // ---------- Watch ----------

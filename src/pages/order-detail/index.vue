@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { onUnload } from '@dcloudio/uni-app'
 import { useVoiceOrderStore } from '@/stores/voiceOrder'
 import { requireAuth } from '@/utils/routeGuard'
 import { confirmSalesOrder, confirmPurchaseOrder } from '@/services/order'
@@ -43,10 +44,15 @@ const confirming = ref(false)
 // ---------- Lifecycle ----------
 onMounted(() => {
   requireAuth()
-  // 防止直接访问：orderId 为 null 时跳回首页
+  // 防止直接访问：orderId 为 null 且不属于流式展示中
   if (store.orderId === null && store.status !== RecordStatus.Streaming) {
     uni.reLaunch({ url: '/pages/home/index' })
   }
+})
+
+// 页面被销毁时重置 store（包括返回按鈕、reLaunch）
+onUnload(() => {
+  store.initSession(store.orderType as OrderType)
 })
 
 // ---------- Handlers ----------
