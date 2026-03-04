@@ -48,7 +48,7 @@ function handleStart() {
 
 async function handleStop() {
   const blob = await stopRecording()
-  if (blob) {
+  if (blob && blob.size > 0) {
     emit('record-stop', blob)
   }
 }

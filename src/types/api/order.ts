@@ -28,13 +28,19 @@ export interface PurchaseOrderDto {
   created_at: string
 }
 
+/** SSE 提取事件 - 单条目结构（后端实际格式）*/
+export interface SseExtractedItem {
+  name: string
+  quantity: string | number
+  unit: string
+  unit_price?: string | number
+  amount?: string | number
+}
+
 /** SSE 提取事件载荷 */
 export interface SseExtractedPayload {
-  name: string
-  quantity: number
-  unit: string
-  price?: number
-  cost?: number
+  order_type?: string
+  items: SseExtractedItem[]
 }
 
 /** SSE 订单创建事件载荷 */

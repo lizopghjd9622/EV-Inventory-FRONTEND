@@ -36,14 +36,18 @@ export function useVoiceOrder() {
           onEvent(eventType, data) {
             if (eventType === SseEventType.EXTRACTED) {
               const payload = data as SseExtractedPayload
-              store.appendItem({
-                clientId: generateClientId(),
-                name: payload.name,
-                quantity: payload.quantity,
-                unit: payload.unit,
-                price: payload.price,
-                cost: payload.cost,
-              })
+              const isSales = (payload.order_type ?? store.orderType) === OrderType.SALES
+              for (const item of payload.items) {
+                const unitPrice = item.unit_price !== undefined ? Number(item.unit_price) : undefined
+                store.appendItem({
+                  clientId: generateClientId(),
+                  name: item.name,
+                  quantity: Number(item.quantity),
+                  unit: item.unit,
+                  price: isSales ? unitPrice : undefined,
+                  cost: isSales ? undefined : unitPrice,
+                })
+              }
             } else if (eventType === SseEventType.ORDER_CREATED) {
               const payload = data as SseOrderCreatedPayload
               store.setOrderId(payload.order_id)

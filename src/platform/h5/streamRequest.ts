@@ -59,8 +59,21 @@ export async function streamUploadAudio(
   const { onEvent, onDone, onError } = handlers
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
+  // 根据 Blob 的实际 MIME type 推断文件扩展名
+  const mimeToExt: Record<string, string> = {
+    'audio/webm': 'webm',
+    'audio/ogg': 'ogg',
+    'audio/mp4': 'mp4',
+    'audio/wav': 'wav',
+    'audio/mp3': 'mp3',
+    'audio/mpeg': 'mp3',
+  }
+  const baseMime = blob.type.split(';')[0].trim()
+  const ext = mimeToExt[baseMime] ?? 'webm'
+  const filename = `audio.${ext}`
+
   const formData = new FormData()
-  formData.append('file', blob, 'audio.wav')
+  formData.append('file', blob, filename)
 
   const url = `${baseUrl}/voice/orders?order_type=${orderType}`
 

@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import { watch, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useVoiceOrderStore } from '@/stores/voiceOrder'
 import { useVoiceOrder } from '@/composables/useVoiceOrder'
 import { requireAuth } from '@/utils/routeGuard'
@@ -101,6 +102,16 @@ let currentOrderType: OrderType = OrderType.SALES
 // ---------- Lifecycle ----------
 onMounted(() => {
   requireAuth()
+})
+
+onShow(() => {
+  // 从订单详情页返回时，若状态是 Done/Streaming，重置为 Idle 让按钮可用
+  if (
+    store.status === RecordStatus.Done ||
+    store.status === RecordStatus.Streaming
+  ) {
+    store.initSession(store.orderType as OrderType)
+  }
 })
 
 // ---------- Watch ----------

@@ -5,7 +5,7 @@ import request from '@/utils/request'
  * @param id 订单 ID
  */
 export async function confirmSalesOrder(id: number): Promise<void> {
-  await request.post(`/orders/sales/${id}/confirm`)
+  await request.post(`/sales-orders/${id}/confirm`)
 }
 
 /**
@@ -13,5 +13,5 @@ export async function confirmSalesOrder(id: number): Promise<void> {
  * @param id 订单 ID
  */
 export async function confirmPurchaseOrder(id: number): Promise<void> {
-  await request.post(`/orders/purchase/${id}/confirm`)
+  await request.post(`/purchase-orders/${id}/confirm`)
 }
