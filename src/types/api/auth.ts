@@ -7,6 +7,6 @@ export interface LoginRequest {
 
 /** 登录响应体 */
 export interface LoginResponse {
-  token: string
-  expires_at: string
+  access_token: string
+  token_type: string
 }

@@ -60,26 +60,43 @@ async function handleStop() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 200rpx;
-  height: 200rpx;
+  width: 180rpx;
+  height: 180rpx;
   border-radius: 50%;
-  background-color: var(--color-primary);
+  background: linear-gradient(145deg, #2e8cff 0%, #0050cc 100%);
+  box-shadow: 0 12rpx 40rpx rgba(26, 122, 255, 0.4), 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
   cursor: pointer;
   user-select: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+
+  &:active:not(.record-button--disabled) {
+    transform: scale(0.94);
+  }
 
   &--disabled {
-    opacity: 0.4;
+    opacity: 0.45;
     cursor: not-allowed;
+    box-shadow: none;
   }
 
   &--recording {
-    background-color: var(--color-danger, #f56c6c);
+    background: linear-gradient(145deg, #ff6b6b 0%, #d9363e 100%);
+    box-shadow: 0 12rpx 40rpx rgba(217, 54, 62, 0.45), 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+    animation: pulse-ring 1.2s ease-out infinite;
   }
 
   &__label {
-    font-size: 28rpx;
+    font-size: 30rpx;
+    font-weight: 700;
     color: #fff;
-    margin-top: 12rpx;
+    letter-spacing: 2rpx;
+    text-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.2);
   }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(217, 54, 62, 0.5), 0 12rpx 40rpx rgba(217, 54, 62, 0.45); }
+  70%  { box-shadow: 0 0 0 24rpx rgba(217, 54, 62, 0), 0 12rpx 40rpx rgba(217, 54, 62, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 54, 62, 0), 0 12rpx 40rpx rgba(217, 54, 62, 0.45); }
 }
 </style>

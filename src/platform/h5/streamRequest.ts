@@ -62,12 +62,20 @@ export async function streamUploadAudio(
   const formData = new FormData()
   formData.append('file', blob, 'audio.wav')
 
-  const url = `${baseUrl}/orders/voice-extract?order_type=${orderType}`
+  const url = `${baseUrl}/voice/orders?order_type=${orderType}`
+
+  // 从持久化存储读取 token，注入 Authorization 头
+  const token = uni.getStorageSync('token') as string | undefined
+  const headers: HeadersInit = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   let response: Response
   try {
     response = await fetch(url, {
       method: 'POST',
+      headers,
       body: formData,
       signal,
     })

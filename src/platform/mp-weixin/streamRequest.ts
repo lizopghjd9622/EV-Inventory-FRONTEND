@@ -77,9 +77,12 @@ export function streamUploadAudioMp(
   }
 
   const uploadTask = wx.uploadFile({
-    url: `${baseUrl}/orders/voice-extract?order_type=${orderType}`,
+    url: `${baseUrl}/voice/orders/?order_type=${orderType}`,
     filePath,
     name: 'file',
+    header: {
+      Authorization: `Bearer ${uni.getStorageSync('token') ?? ''}`,
+    },
     enableChunked: true,
     success(res) {
       if (res.statusCode >= 400) {

@@ -49,32 +49,41 @@ function handleClick() {
   justify-content: center;
   height: 96rpx;
   padding: 0 $spacing-xl;
-  border-radius: $radius-lg;
+  border-radius: $radius-round;
   font-size: $font-size-md;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
   cursor: pointer;
-  transition: box-shadow $transition-fast;
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+  letter-spacing: 2rpx;
 
   &:active {
-    box-shadow: $shadow-btn-press;
+    transform: scale(0.97);
+    opacity: 0.9;
   }
 
   &--primary {
-    background: $color-primary;
+    background: linear-gradient(135deg, #2e8cff 0%, #1a7aff 60%, #0050cc 100%);
     color: #fff;
+    box-shadow: 0 8rpx 24rpx rgba(26, 122, 255, 0.35);
+
+    &:active {
+      box-shadow: 0 4rpx 12rpx rgba(26, 122, 255, 0.25);
+    }
   }
 
   &--default {
-    background: $color-bg-white;
+    background: #fff;
     color: $color-text-primary;
-    border: 2rpx solid $color-border;
+    border: 2rpx solid #dde4f0;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
   }
 
   &--loading,
   &[disabled] {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
+    transform: none;
   }
 
   &__loading-icon {
@@ -88,11 +97,7 @@ function handleClick() {
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 </style>
