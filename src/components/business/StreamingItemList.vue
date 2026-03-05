@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { EditableOrderItem } from '@/types/models/order'
+import { OrderType } from '@/constants'
 import LoadingRow from './LoadingRow.vue'
 import OrderItemRow from './OrderItemRow.vue'
 
@@ -8,6 +9,7 @@ import OrderItemRow from './OrderItemRow.vue'
 interface Props {
   streaming: boolean
   items: EditableOrderItem[]
+  orderType: OrderType
 }
 
 // Props 声明
@@ -17,6 +19,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:item': [patch: EditableOrderItem]
   delete: [clientId: string]
+  add: []
 }>()
 
 // 是否展示空状态提示
@@ -36,6 +39,7 @@ const isEmpty = computed(() => !props.streaming && props.items.length === 0)
         v-for="item in props.items"
         :key="item.clientId"
         :item="item"
+        :order-type="props.orderType"
         @update:item="(patch) => emit('update:item', patch)"
         @delete="(id) => emit('delete', id)"
       />
@@ -44,6 +48,12 @@ const isEmpty = computed(() => !props.streaming && props.items.length === 0)
     <!-- 空状态提示 -->
     <view v-if="isEmpty" data-testid="empty-hint" class="streaming-item-list__empty">
       <text>暂无识别结果</text>
+    </view>
+
+    <!-- 添加商品按钮 -->
+    <view v-if="!props.streaming" class="streaming-item-list__add" @click="emit('add')">
+      <text class="streaming-item-list__add-icon">＋</text>
+      <text class="streaming-item-list__add-text">添加商品</text>
     </view>
   </view>
 </template>
@@ -59,6 +69,20 @@ const isEmpty = computed(() => !props.streaming && props.items.length === 0)
     text-align: center;
     color: $color-text-placeholder;
     font-size: $font-size-sm;
+  }
+  &__add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+    margin: $spacing-sm $spacing-md;
+    padding: $spacing-md;
+    border: 2rpx dashed $color-primary;
+    border-radius: $radius-md;
+    color: $color-primary;
+    cursor: pointer;
+    &-icon { font-size: $font-size-lg; line-height: 1; }
+    &-text { font-size: $font-size-sm; }
   }
 }
 </style>

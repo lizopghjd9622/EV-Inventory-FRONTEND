@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import type { EditableOrderItem } from '@/types/models/order'
+import { OrderType } from '@/constants'
 
 // Props 类型定义
 interface Props {
   item: EditableOrderItem
+  orderType: OrderType
 }
 
 // Props 声明
@@ -15,20 +18,46 @@ const emit = defineEmits<{
   delete: [clientId: string]
 }>()
 
-// 方法
-function handleNameInput(e: Event) {
-  const value = (e.target as HTMLInputElement).value
-  emit('update:item', { ...props.item, name: value })
-}
+// ---------- 本地状态（输入过程中不触发父级重渲染）----------
+const localName = ref(props.item.name)
+const localQuantity = ref(String(props.item.quantity))
+const localUnit = ref(props.item.unit)
+const localPrice = ref(
+  (() => {
+    const v = props.orderType === OrderType.SALES ? props.item.price : props.item.cost
+    return v !== undefined ? String(v) : ''
+  })(),
+)
 
-function handleQuantityInput(e: Event) {
-  const value = Number((e.target as HTMLInputElement).value)
-  emit('update:item', { ...props.item, quantity: value })
-}
+// 外部 item 切换时（clientId 变化）同步本地值
+watch(
+  () => props.item.clientId,
+  () => {
+    localName.value = props.item.name
+    localQuantity.value = String(props.item.quantity)
+    localUnit.value = props.item.unit
+    const v = props.orderType === OrderType.SALES ? props.item.price : props.item.cost
+    localPrice.value = v !== undefined ? String(v) : ''
+  },
+)
 
-function handleUnitInput(e: Event) {
-  const value = (e.target as HTMLInputElement).value
-  emit('update:item', { ...props.item, unit: value })
+// ---------- 失焦时才同步到 store ----------
+function commitName() {
+  emit('update:item', { ...props.item, name: localName.value })
+}
+function commitQuantity() {
+  emit('update:item', { ...props.item, quantity: Number(localQuantity.value) || 0 })
+}
+function commitUnit() {
+  emit('update:item', { ...props.item, unit: localUnit.value })
+}
+function commitPrice() {
+  const value = Number(localPrice.value) || 0
+  if (props.orderType === OrderType.SALES) {
+    emit('update:item', { ...props.item, price: value })
+  } else {
+    emit('update:item', { ...props.item, cost: value })
+  }
 }
 
 function handleDelete() {
@@ -40,26 +69,35 @@ function handleDelete() {
   <view data-testid="order-item-row" class="order-item-row">
     <input
       data-testid="item-name"
-      :value="props.item.name"
+      v-model="localName"
       placeholder="商品名称"
       class="order-item-row__input order-item-row__input--name"
-      @input="handleNameInput"
+      @blur="commitName"
     />
     <input
       data-testid="item-quantity"
-      :value="String(props.item.quantity)"
+      v-model="localQuantity"
       placeholder="数量"
       type="number"
       class="order-item-row__input order-item-row__input--qty"
-      @input="handleQuantityInput"
+      @blur="commitQuantity"
     />
     <input
       data-testid="item-unit"
-      :value="props.item.unit"
+      v-model="localUnit"
       placeholder="单位"
       class="order-item-row__input order-item-row__input--unit"
-      @input="handleUnitInput"
+      @blur="commitUnit"
     />
+    <input
+      data-testid="item-price"
+      v-model="localPrice"
+      placeholder="单价"
+      type="number"
+      class="order-item-row__input order-item-row__input--price"
+      @blur="commitPrice"
+    />
+    <text class="order-item-row__price-unit">元/{{ props.item.unit || '单位' }}</text>
     <button
       data-testid="delete-btn"
       class="order-item-row__delete"
@@ -103,6 +141,17 @@ function handleDelete() {
     &--unit {
       flex: 1;
     }
+
+    &--price {
+      flex: 1.2;
+    }
+  }
+
+  &__price-unit {
+    font-size: $font-size-xs;
+    color: $color-text-secondary;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   &__delete {

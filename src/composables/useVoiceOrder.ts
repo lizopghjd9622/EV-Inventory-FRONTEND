@@ -1,7 +1,7 @@
 import { useVoiceOrderStore } from '@/stores/voiceOrder'
 import { OrderType, RecordStatus, SseEventType } from '@/constants'
 import { streamUploadAudio } from '@/platform/h5/streamRequest'
-import type { SseExtractedPayload, SseOrderCreatedPayload, SseErrorPayload } from '@/types/api/order'
+import type { SseExtractedPayload } from '@/types/api/order'
 
 /**
  * 生成前端唯一 clientId（不依赖外部库）
@@ -48,19 +48,17 @@ export function useVoiceOrder() {
                   cost: isSales ? undefined : unitPrice,
                 })
               }
-            } else if (eventType === SseEventType.ORDER_CREATED) {
-              const payload = data as SseOrderCreatedPayload
-              store.setOrderId(payload.order_id)
             } else if (eventType === SseEventType.ERROR) {
-              const payload = data as SseErrorPayload
-              store.setError(payload.message)
+              // 识别失败也跳确认页，让用户手动录入
+              store.setStatus(RecordStatus.Done)
             }
           },
           onDone() {
-            // 正常结束不需要额外操作，状态已由 ORDER_CREATED 变为 Done
+            store.setStatus(RecordStatus.Done)
           },
-          onError(err) {
-            store.setError(err.message)
+          onError(_err) {
+            // 网络/连接错误也跳确认页，让用户手动录入
+            store.setStatus(RecordStatus.Done)
           },
         },
         abortController.signal,
@@ -70,8 +68,8 @@ export function useVoiceOrder() {
       if (err instanceof DOMException && err.name === 'AbortError') {
         return
       }
-      const message = err instanceof Error ? err.message : '语音识别失败，请重试'
-      store.setError(message)
+      // 异常也跳确认页，让用户手动录入
+      store.setStatus(RecordStatus.Done)
     }
   }
 

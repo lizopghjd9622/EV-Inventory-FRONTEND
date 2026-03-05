@@ -40,7 +40,7 @@
         <view class="dashboard-page__bubble dashboard-page__bubble--user">
           <text class="dashboard-page__bubble-text">{{ msg.question }}</text>
         </view>
-        <!-- 识别文字（语音时展示） -->
+        <!-- 识别文字（语音时展示，内容与问题气泡不同时才展示） -->
         <view v-if="msg.transcribed" class="dashboard-page__transcribed">
           <text class="dashboard-page__transcribed-label">🎙 识别：</text>
           <text class="dashboard-page__transcribed-text">{{ msg.transcribed }}</text>
@@ -57,8 +57,8 @@
           <text class="dashboard-page__bubble-text">{{ msg.answer }}</text>
           <text v-if="msg.streaming" class="dashboard-page__cursor">|</text>
         </view>
-        <!-- 错误 -->
-        <view v-if="msg.error" class="dashboard-page__bubble dashboard-page__bubble--error">
+        <!-- 错误：有回答时不再重复显示错误 -->
+        <view v-if="msg.error && !msg.answer" class="dashboard-page__bubble dashboard-page__bubble--error">
           <text class="dashboard-page__bubble-text">⚠ {{ msg.error }}</text>
         </view>
       </view>
@@ -200,7 +200,7 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
 
   const handlers = {
     onTranscribed: (text: string) => {
-      messages.value[idx].question = text
+      // 保留 question 作为语音占位符（🎙 语音提问），识别文字单独展示在下方
       messages.value[idx].transcribed = text
       scrollToBottom()
     },

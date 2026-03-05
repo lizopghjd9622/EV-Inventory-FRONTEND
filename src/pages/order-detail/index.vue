@@ -10,9 +10,11 @@
     <StreamingItemList
       :items="store.items"
       :streaming="store.status === RecordStatus.Streaming"
+      :order-type="store.orderType"
       data-testid="item-list"
       @update:item="store.updateItem"
       @delete="store.deleteItem"
+      @add="handleAddItem"
     />
 
     <!-- 操作栏 -->
@@ -30,7 +32,8 @@ import { ref, onMounted } from 'vue'
 import { onUnload } from '@dcloudio/uni-app'
 import { useVoiceOrderStore } from '@/stores/voiceOrder'
 import { requireAuth } from '@/utils/routeGuard'
-import { confirmSalesOrder, confirmPurchaseOrder } from '@/services/order'
+import { createAndConfirmSalesOrder, createAndConfirmPurchaseOrder } from '@/services/order'
+import type { OrderItemRequest } from '@/services/order'
 import { OrderType, RecordStatus } from '@/constants'
 import StreamingItemList from '@/components/business/StreamingItemList.vue'
 import ActionBar from '@/components/business/ActionBar.vue'
@@ -44,8 +47,8 @@ const confirming = ref(false)
 // ---------- Lifecycle ----------
 onMounted(() => {
   requireAuth()
-  // 防止直接访问：orderId 为 null 且不属于流式展示中
-  if (store.orderId === null && store.status !== RecordStatus.Streaming) {
+  // 防止直接访问：仅当状态为 Idle（未经过录音流程）时才拦截
+  if (store.status === RecordStatus.Idle) {
     uni.redirectTo({ url: '/pages/dashboard/index' })
   }
 })
@@ -56,20 +59,40 @@ onUnload(() => {
 })
 
 // ---------- Handlers ----------
+function handleAddItem() {
+  store.appendItem({
+    clientId: `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    name: '',
+    quantity: 1,
+    unit: '个',
+    price: store.orderType === OrderType.SALES ? 0 : undefined,
+    cost: store.orderType === OrderType.SALES ? undefined : 0,
+  })
+}
+
 function handleRerecord() {
   store.initSession(store.orderType)
   uni.navigateBack()
 }
 
 async function handleConfirm() {
-  if (store.orderId === null) return
-
   confirming.value = true
   try {
+    const items: OrderItemRequest[] = store.items.map((item) => {
+      const unitPrice = item.price ?? item.cost ?? 0
+      return {
+        name: item.name,
+        unit: item.unit,
+        quantity: item.quantity,
+        unit_price: unitPrice,
+        amount: Number(item.quantity) * Number(unitPrice),
+      }
+    })
+
     if (store.orderType === OrderType.SALES) {
-      await confirmSalesOrder(store.orderId)
+      await createAndConfirmSalesOrder({ items })
     } else {
-      await confirmPurchaseOrder(store.orderId)
+      await createAndConfirmPurchaseOrder({ items })
     }
     uni.redirectTo({ url: '/pages/dashboard/index' })
   } catch (err: unknown) {

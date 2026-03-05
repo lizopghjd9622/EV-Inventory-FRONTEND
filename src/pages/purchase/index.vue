@@ -1,14 +1,5 @@
 <template>
   <view class="purchase-page">
-    <!-- 错误 Banner -->
-    <view v-if="store.status === RecordStatus.Error" class="purchase-page__error-banner" data-testid="error-banner">
-      <view class="purchase-page__error-content">
-        <text class="purchase-page__error-icon">⚠</text>
-        <text class="purchase-page__error-text">{{ store.errorMessage || '发送失败，请重试' }}</text>
-      </view>
-      <BaseButton label="重新发送" type="primary" @click="handleResend" />
-    </view>
-
     <!-- 主内容 -->
     <view class="purchase-page__main">
       <!-- 图标 -->
@@ -35,7 +26,7 @@
           ⚡ 识别中，请稍候…
         </text>
         <text v-else class="purchase-page__status-text purchase-page__status-text--idle">
-          长按按钮开始录音
+          <!-- 长按按钮开始录音 -->
         </text>
       </view>
 
@@ -43,12 +34,21 @@
       <view class="purchase-page__btn-wrap">
         <RecordButton
           label="进货"
-          :disabled="store.status !== RecordStatus.Idle && store.status !== RecordStatus.Error"
+          :disabled="store.status !== RecordStatus.Idle"
           data-testid="purchase-btn"
           @record-start="handleRecordStart"
           @record-stop="handleRecordStop"
           @record-timeout="handleRecordTimeout"
         />
+      </view>
+
+      <!-- 手动录单 -->
+      <view
+        class="purchase-page__manual-entry"
+        :class="{ 'purchase-page__manual-entry--disabled': store.status !== RecordStatus.Idle }"
+        @click="handleManualEntry"
+      >
+        <text>✏️ 手动录单</text>
       </view>
 
       <!-- 提示 -->
@@ -69,7 +69,6 @@ import { useVoiceOrder } from '@/composables/useVoiceOrder'
 import { requireAuth } from '@/utils/routeGuard'
 import { OrderType, RecordStatus } from '@/constants'
 import RecordButton from '@/components/business/RecordButton.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 import BottomTabBar from '@/components/business/BottomTabBar.vue'
 
 const store = useVoiceOrderStore()
@@ -102,9 +101,10 @@ function handleRecordTimeout() {
   uni.showToast({ title: '已达最大时长，自动发送', icon: 'none' })
 }
 
-async function handleResend() {
-  if (!store.audioBlob) return
-  await voiceOrder.startVoiceOrder(store.audioBlob)
+function handleManualEntry() {
+  if (store.status !== RecordStatus.Idle) return
+  store.initSession(OrderType.PURCHASE)
+  store.setStatus(RecordStatus.Done)
 }
 </script>
 
@@ -219,7 +219,24 @@ async function handleResend() {
   &__btn-wrap {
     display: flex;
     justify-content: center;
-    margin-bottom: 60rpx;
+    margin-bottom: 40rpx;
+  }
+
+  &__manual-entry {
+    margin-bottom: 48rpx;
+    font-size: 28rpx;
+    color: #00796b;
+    padding: 12rpx 40rpx;
+    border-radius: 100rpx;
+    border: 2rpx solid #b7edd0;
+    background: #f0fff4;
+
+    &--disabled {
+      color: #bbb;
+      border-color: #e5e5e5;
+      background: #f5f5f5;
+      pointer-events: none;
+    }
   }
 
   &__tips {

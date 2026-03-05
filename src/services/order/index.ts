@@ -1,17 +1,31 @@
 import request from '@/utils/request'
 
-/**
- * 确认销售订单
- * @param id 订单 ID
- */
-export async function confirmSalesOrder(id: number): Promise<void> {
-  await request.post(`/sales-orders/${id}/confirm`)
+export interface OrderItemRequest {
+  name: string
+  unit: string
+  quantity: number | string
+  unit_price: number | string
+  amount: number | string
+}
+
+export interface CreateAndConfirmOrderRequest {
+  items: OrderItemRequest[]
 }
 
 /**
- * 确认进货订单
- * @param id 订单 ID
+ * 创建并确认销售单
  */
-export async function confirmPurchaseOrder(id: number): Promise<void> {
-  await request.post(`/purchase-orders/${id}/confirm`)
+export async function createAndConfirmSalesOrder(
+  payload: CreateAndConfirmOrderRequest,
+): Promise<void> {
+  await request.post('/sales-orders/create-and-confirm', payload)
+}
+
+/**
+ * 创建并确认进货单
+ */
+export async function createAndConfirmPurchaseOrder(
+  payload: CreateAndConfirmOrderRequest,
+): Promise<void> {
+  await request.post('/purchase-orders/create-and-confirm', payload)
 }

@@ -12,6 +12,7 @@ interface AgentEventData {
   content?: string
   text?: string
   message?: string
+  transcript?: string
   [key: string]: unknown
 }
 
@@ -38,7 +39,7 @@ function parseSseChunk(chunk: string): Array<{ eventType: string; data: AgentEve
 }
 
 function extractText(data: AgentEventData): string {
-  return (data.content ?? data.text ?? data.message ?? '') as string
+  return (data.content ?? data.transcript ?? data.text ?? data.message ?? '') as string
 }
 
 async function streamAgent(

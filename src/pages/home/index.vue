@@ -10,20 +10,6 @@
       </view>
     </view>
 
-    <!-- 错误 Banner -->
-    <view v-if="store.status === RecordStatus.Error" class="home-page__error-banner" data-testid="error-banner">
-      <view class="home-page__error-content">
-        <text class="home-page__error-icon">⚠</text>
-        <text class="home-page__error-text">{{ store.errorMessage || '发送失败，请重试' }}</text>
-      </view>
-      <BaseButton
-        label="重新发送"
-        type="primary"
-        data-testid="resend-btn"
-        @click="handleResend"
-      />
-    </view>
-
     <!-- 主操作区 -->
     <view class="home-page__main">
       <!-- 状态提示文字 -->
@@ -52,7 +38,7 @@
         <view class="home-page__button-card home-page__button-card--sales">
           <RecordButton
             label="销售"
-            :disabled="store.status !== RecordStatus.Idle && store.status !== RecordStatus.Error"
+            :disabled="store.status !== RecordStatus.Idle"
             data-testid="sales-btn"
             @record-start="handleRecordStart(OrderType.SALES)"
             @record-stop="handleRecordStop"
@@ -65,7 +51,7 @@
         <view class="home-page__button-card home-page__button-card--purchase">
           <RecordButton
             label="进货"
-            :disabled="store.status !== RecordStatus.Idle && store.status !== RecordStatus.Error"
+            :disabled="store.status !== RecordStatus.Idle"
             data-testid="purchase-btn"
             @record-start="handleRecordStart(OrderType.PURCHASE)"
             @record-stop="handleRecordStop"
@@ -92,7 +78,6 @@ import { useVoiceOrder } from '@/composables/useVoiceOrder'
 import { requireAuth } from '@/utils/routeGuard'
 import { OrderType, RecordStatus } from '@/constants'
 import RecordButton from '@/components/business/RecordButton.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 
 // ---------- Store & Composable ----------
 const store = useVoiceOrderStore()
@@ -136,10 +121,7 @@ function handleRecordTimeout() {
   uni.showToast({ title: '已达最大时长，自动发送', icon: 'none' })
 }
 
-async function handleResend() {
-  if (!store.audioBlob) return
-  await voiceOrder.startVoiceOrder(store.audioBlob)
-}
+
 </script>
 
 <style lang="scss" scoped>
