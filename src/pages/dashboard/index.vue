@@ -239,7 +239,6 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
 
   // ----- 头部 -----
   &__header {
@@ -288,7 +287,10 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
   &__history {
     flex: 1;
     padding: 24rpx 24rpx 0;
-    overflow: hidden;
+    // 底部留出：输入框高度(~120rpx) + tabBar(100rpx) + buffer
+    padding-bottom: 240rpx;
+    overflow-y: auto;
+    box-sizing: border-box;
   }
 
   // ----- 空状态 -----
@@ -438,7 +440,10 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
 
   // ----- 输入区 -----
   &__input-bar {
-    flex-shrink: 0;
+    position: fixed;
+    bottom: 100rpx; // 紧贴 tabBar 上方
+    left: 0;
+    right: 0;
     background: #fff;
     border-top: 1rpx solid #e8e8e8;
     padding: 16rpx 24rpx;
@@ -446,9 +451,7 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
     align-items: flex-end;
     gap: 16rpx;
     box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
-    // 给底部 tabBar 留出空间
-    padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-    margin-bottom: 100rpx;
+    z-index: 100;
   }
 
   &__textarea {
