@@ -48,7 +48,9 @@ function handleStart() {
 
 async function handleStop() {
   const blob = await stopRecording()
-  if (blob && blob.size > 0) {
+  // 兼容 H5 (size) 和小程序 (_mpTempPath)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (blob && (blob.size > 0 || (blob as any)._mpTempPath)) {
     emit('record-stop', blob)
   }
 }

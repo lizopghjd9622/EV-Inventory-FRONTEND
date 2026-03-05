@@ -27,6 +27,40 @@ export function useRecorder(options: UseRecorderOptions = {}) {
   // 小程序分支：复用同一个 recorderManager 实例
   let uniRecorderManager: ReturnType<typeof uni.getRecorderManager> | null = null
 
+  // 初始化小程序录音管理器（单例模式）
+  // 避免在 startRecording 中重复绑定事件导致内存泄漏或多次回调
+  // 仅在非 H5 环境（没有 MediaRecorder）且 uni.getRecorderManager 可用时初始化
+  if (
+    typeof MediaRecorder === 'undefined' &&
+    typeof uni !== 'undefined' &&
+    typeof uni.getRecorderManager === 'function'
+  ) {
+    uniRecorderManager = uni.getRecorderManager()
+    
+    uniRecorderManager.onStop((res: { tempFilePath: string }) => {
+      isRecording.value = false
+      // 小程序不支持 Blob，直接透传临时文件路径
+      // 平台适配层（streamUploadAudioMp）会取 _mpTempPath 直接上传
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mpFile = { _mpTempPath: res.tempFilePath } as unknown as Blob & { _mpTempPath: string }
+      if (stopResolve) {
+        const resolve = stopResolve
+        stopResolve = null
+        resolve(mpFile)
+      }
+    })
+
+    uniRecorderManager.onError((err) => {
+      console.error('Recorder error:', err)
+      isRecording.value = false
+      if (stopResolve) {
+        const resolve = stopResolve
+        stopResolve = null
+        resolve({} as unknown as Blob)
+      }
+    })
+  }
+
   /**
    * 检测当前浏览器支持的最佳录音 MIME type
    */
@@ -51,6 +85,10 @@ export function useRecorder(options: UseRecorderOptions = {}) {
    */
   async function _forceStop(): Promise<Blob> {
     if (!isRecording.value) {
+      // 小程序环境没有 Blob，返回兼容占位对象
+      if (typeof Blob === 'undefined') {
+        return {} as unknown as Blob
+      }
       return new Blob([])
     }
 
@@ -107,10 +145,16 @@ export function useRecorder(options: UseRecorderOptions = {}) {
       if (stopResolve) {
         const resolve = stopResolve
         stopResolve = null
-        const raw = new Blob(chunks, { type: h5MimeType })
-        convertToWav(raw)
-          .then((wav) => resolve(wav))
-          .catch(() => resolve(raw))
+        if (typeof Blob !== 'undefined') {
+          // H5 路径：有真实 chunks
+          const raw = new Blob(chunks, { type: h5MimeType })
+          convertToWav(raw)
+            .then((wav) => resolve(wav))
+            .catch(() => resolve(raw))
+        } else {
+          // 小程序路径：超时时 onStop 通常已经 resolve 过，这里保底兜底
+          resolve({} as unknown as Blob)
+        }
       }
     }, MAX_RECORD_SECONDS * 1000)
 
@@ -174,18 +218,7 @@ export function useRecorder(options: UseRecorderOptions = {}) {
         })
     } else {
       // 小程序分支
-      uniRecorderManager = uni.getRecorderManager()
-      uniRecorderManager.onStop((res: { tempFilePath: string }) => {
-        // tempFilePath → Blob（真机环境下通过文件路径读取，测试中直接创建空 Blob）
-        const blob = new Blob([], { type: 'audio/mp3' })
-        void res // 真机时可用 res.tempFilePath 读取文件
-        if (stopResolve) {
-          const resolve = stopResolve
-          stopResolve = null
-          resolve(blob)
-        }
-      })
-      uniRecorderManager.start({ duration: MAX_RECORD_SECONDS * 1000, format: 'mp3' })
+      uniRecorderManager?.start({ duration: MAX_RECORD_SECONDS * 1000, format: 'mp3' })
     }
   }
 

@@ -77,7 +77,7 @@ export function streamUploadAudioMp(
   }
 
   const uploadTask = wx.uploadFile({
-    url: `${baseUrl}/voice/orders/?order_type=${orderType}`,
+    url: `${baseUrl}/voice/orders?order_type=${orderType}`,
     filePath,
     name: 'file',
     header: {

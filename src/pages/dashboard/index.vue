@@ -441,7 +441,8 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
   // ----- 输入区 -----
   &__input-bar {
     position: fixed;
-    bottom: 100rpx; // 紧贴 tabBar 上方
+    bottom: calc(100rpx + constant(safe-area-inset-bottom)); /* 兼容 iOS < 11.2 */
+    bottom: calc(100rpx + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     background: #fff;

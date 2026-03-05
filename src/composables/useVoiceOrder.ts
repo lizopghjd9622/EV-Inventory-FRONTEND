@@ -1,6 +1,6 @@
 import { useVoiceOrderStore } from '@/stores/voiceOrder'
 import { OrderType, RecordStatus, SseEventType } from '@/constants'
-import { streamUploadAudio } from '@/platform/h5/streamRequest'
+import { streamUploadAudio } from '@/platform/streamRequest'
 import type { SseExtractedPayload } from '@/types/api/order'
 
 /**
@@ -26,7 +26,18 @@ export function useVoiceOrder() {
    */
   async function startVoiceOrder(blob: Blob): Promise<void> {
     store.setStatus(RecordStatus.Streaming)
-    abortController = new AbortController()
+    
+    if (typeof AbortController !== 'undefined') {
+      abortController = new AbortController()
+    } else {
+      // 兼容环境（如小程序低版本基础库）缺失 AbortController
+      // 提供一个哑对象防止报错，但取消功能会失效
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      abortController = {
+        signal: {} as AbortSignal,
+        abort: () => { /* no-op */ },
+      } as unknown as AbortController
+    }
 
     try {
       await streamUploadAudio(
@@ -64,8 +75,13 @@ export function useVoiceOrder() {
         abortController.signal,
       )
     } catch (err) {
-      // AbortError 不触发错误状态
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      // AbortError 不触发错误状态 (兼容检测 DOMException 是否存在)
+      const isAbort =
+        typeof DOMException !== 'undefined' &&
+        err instanceof DOMException &&
+        err.name === 'AbortError'
+
+      if (isAbort) {
         return
       }
       // 异常也跳确认页，让用户手动录入
