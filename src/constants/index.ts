@@ -14,6 +14,16 @@ export enum SseEventType {
   ERROR = 'error',
 }
 
+/** Agent SSE 事件类型 */
+export enum AgentEventType {
+  TRANSCRIBED = 'transcribed',
+  THINKING = 'thinking',
+  TOOL_CALL = 'tool_call',
+  TOOL_RESULT = 'tool_result',
+  ANSWER = 'answer',
+  ERROR = 'error',
+}
+
 /** 录音状态 */
 export enum RecordStatus {
   Idle = 'Idle',
