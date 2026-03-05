@@ -93,7 +93,7 @@ const showCaptcha = computed(() => errorCount.value >= CAPTCHA_ERROR_THRESHOLD)
 // ---------- Lifecycle ----------
 onMounted(() => {
   if (authStore.isLoggedIn) {
-    uni.reLaunch({ url: '/pages/home/index' })
+    uni.redirectTo({ url: '/pages/dashboard/index' })
   }
 })
 
@@ -121,7 +121,7 @@ async function handleLogin() {
     })
 
     authStore.setToken(res.access_token)
-    uni.reLaunch({ url: '/pages/home/index' })
+    uni.redirectTo({ url: '/pages/dashboard/index' })
   } catch (err: unknown) {
     const error = err as { statusCode?: number; data?: { detail?: string } }
     errorCount.value += 1

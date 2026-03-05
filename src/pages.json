@@ -9,9 +9,25 @@
 			}
 		},
 		{
-			"path": "pages/home/index",
+			"path": "pages/dashboard/index",
 			"style": {
-				"navigationBarTitleText": "首页",
+				"navigationBarTitleText": "老板助手",
+				"navigationBarBackgroundColor": "#1a7aff",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/sales/index",
+			"style": {
+				"navigationBarTitleText": "销售录单",
+				"navigationBarBackgroundColor": "#FFFFFF",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/purchase/index",
+			"style": {
+				"navigationBarTitleText": "进货录单",
 				"navigationBarBackgroundColor": "#FFFFFF",
 				"navigationBarTextStyle": "black"
 			}
@@ -20,6 +36,14 @@
 			"path": "pages/order-detail/index",
 			"style": {
 				"navigationBarTitleText": "订单详情",
+				"navigationBarBackgroundColor": "#FFFFFF",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/home/index",
+			"style": {
+				"navigationBarTitleText": "首页",
 				"navigationBarBackgroundColor": "#FFFFFF",
 				"navigationBarTextStyle": "black"
 			}

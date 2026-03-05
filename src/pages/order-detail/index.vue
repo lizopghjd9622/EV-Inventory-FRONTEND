@@ -46,7 +46,7 @@ onMounted(() => {
   requireAuth()
   // 防止直接访问：orderId 为 null 且不属于流式展示中
   if (store.orderId === null && store.status !== RecordStatus.Streaming) {
-    uni.reLaunch({ url: '/pages/home/index' })
+    uni.redirectTo({ url: '/pages/dashboard/index' })
   }
 })
 
@@ -58,7 +58,7 @@ onUnload(() => {
 // ---------- Handlers ----------
 function handleRerecord() {
   store.initSession(store.orderType)
-  uni.reLaunch({ url: '/pages/home/index' })
+  uni.navigateBack()
 }
 
 async function handleConfirm() {
@@ -71,7 +71,7 @@ async function handleConfirm() {
     } else {
       await confirmPurchaseOrder(store.orderId)
     }
-    uni.reLaunch({ url: '/pages/home/index' })
+    uni.redirectTo({ url: '/pages/dashboard/index' })
   } catch (err: unknown) {
     const error = err as { data?: { detail?: string } }
     const msg = error?.data?.detail ?? '提交失败，请稍后重试'
