@@ -59,7 +59,7 @@ const isEmpty = computed(() => !props.streaming && props.items.length === 0)
 </template>
 
 <style lang="scss" scoped>
-@use 'styles/variables' as *;
+@import 'styles/variables';
 
 .streaming-item-list {
   padding: $spacing-sm 0;

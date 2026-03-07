@@ -49,7 +49,7 @@ function handleInput(e: Event) {
 </template>
 
 <style lang="scss" scoped>
-@use 'styles/variables' as *;
+@import 'styles/variables';
 
 .base-input-wrapper {
   width: 100%;

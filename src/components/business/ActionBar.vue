@@ -37,7 +37,7 @@ const emit = defineEmits<{
 </template>
 
 <style lang="scss" scoped>
-@use 'styles/variables' as *;
+@import 'styles/variables';
 
 .action-bar {
   display: flex;

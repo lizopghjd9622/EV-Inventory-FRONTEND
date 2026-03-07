@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
 </template>
 
 <style lang="scss" scoped>
-@use 'styles/variables' as *;
+@import 'styles/variables';
 
 .wave-animation {
   display: flex;
