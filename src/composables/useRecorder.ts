@@ -66,6 +66,9 @@ export function useRecorder(options: UseRecorderOptions = {}) {
    */
   function detectMimeType(): string {
     const candidates = [
+      // PCM 优先：无压缩，无 Opus DTX，Chrome 121+ 支持
+      // DTX（非连续传输）会把低音量信号判为静音丢弃，导致 Chrome 下录音全零
+      'audio/webm;codecs=pcm',
       'audio/webm;codecs=opus',
       'audio/webm',
       'audio/ogg;codecs=opus',
@@ -74,6 +77,7 @@ export function useRecorder(options: UseRecorderOptions = {}) {
     ]
     for (const type of candidates) {
       if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) {
+        console.log('[useRecorder] 选择 mimeType:', type)
         return type
       }
     }
@@ -161,16 +165,44 @@ export function useRecorder(options: UseRecorderOptions = {}) {
     if (typeof MediaRecorder !== 'undefined') {
       // H5 分支
       h5MimeType = detectMimeType()
+
+      // 先枚举设备，打印所有音频输入，便于排查 Chrome 选错麦克风
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        const audioInputs = devices.filter((d) => d.kind === 'audioinput')
+        console.log('[useRecorder] 可用音频输入设备:', audioInputs.map((d) => `${d.deviceId.slice(0, 8)} ${d.label}`))
+      })
+
       navigator.mediaDevices
-        .getUserMedia({ audio: true })
+        .getUserMedia({
+          audio: {
+            // deviceId: 'default' 强制跟随系统默认输入设备
+            // Chrome 不设置时可能选内置麦，而 Safari 跟随系统默认（如 AirPods）
+            deviceId: 'default',
+            // noiseSuppression/echoCancellation 关闭避免信号被过度处理
+            // autoGainControl 必须保持 true，否则信号过弱触发 Opus DTX 静音
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: true,
+          },
+        })
         .then((stream) => {
-          mediaRecorder = new MediaRecorder(stream, { mimeType: h5MimeType })
+          const track = stream.getAudioTracks()[0]
+          console.log('[useRecorder] audio track:', track?.label, track?.getSettings())
+          // 强制高码率：禁用 Opus DTX（非连续传输），
+          // DTX 会把低音量信号全部丢弃导致静音
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: h5MimeType,
+            audioBitsPerSecond: 128000,
+          })
+          console.log('[useRecorder] MediaRecorder 启动，mimeType:', h5MimeType)
           mediaRecorder.ondataavailable = (e) => {
+            console.log('[useRecorder] ondataavailable chunk size:', e.data.size)
             if (e.data.size > 0) {
               chunks.push(e.data)
             }
           }
           mediaRecorder.onstop = () => {
+            console.log('[useRecorder] onstop，chunks:', chunks.length, 'totalSize:', chunks.reduce((s, c) => s + c.size, 0))
             const raw = new Blob(chunks, { type: h5MimeType })
             convertToWav(raw)
               .then((wav) => {
@@ -190,14 +222,7 @@ export function useRecorder(options: UseRecorderOptions = {}) {
                 }
               })
           }
-          // 不使用 timeslice，避免 Chrome 下 WebM 容器分片导致 decodeAudioData 读到静音
-          // 改用 setInterval + requestData() 定期触发 ondataavailable，容器完整性由 MediaRecorder 保证
           mediaRecorder.start()
-          dataRequestInterval = setInterval(() => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-              mediaRecorder.requestData()
-            }
-          }, 100)
           // 若 stopRecording() 在 getUserMedia resolve 之前被调用（竞态），立即停止
           if (stopResolve) {
             mediaRecorder.stop()

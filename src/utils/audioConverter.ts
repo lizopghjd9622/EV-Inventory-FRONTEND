@@ -12,19 +12,44 @@
  * @param blob - 原始录音 Blob
  */
 export async function convertToWav(blob: Blob): Promise<Blob> {
+  console.log('[audioConverter] 开始转换，blob size:', blob.size, 'type:', blob.type)
+
   const arrayBuffer = await blob.arrayBuffer()
+  console.log('[audioConverter] arrayBuffer byteLength:', arrayBuffer.byteLength)
 
   const audioCtx = new AudioContext()
-  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+  console.log('[audioConverter] AudioContext state:', audioCtx.state, 'sampleRate:', audioCtx.sampleRate)
+
+  // Chrome 的 Autoplay Policy 可能导致 AudioContext 处于 suspended 状态，
+  // 部分 Chrome 版本在 suspended 下 decodeAudioData 会返回全零静音数据
+  if (audioCtx.state === 'suspended') {
+    console.log('[audioConverter] AudioContext suspended，尝试 resume...')
+    await audioCtx.resume()
+    console.log('[audioConverter] resume 后 state:', audioCtx.state)
+  }
+
+  // 使用 callback 形式避免 Chrome Promise-based decodeAudioData 的时序 bug
+  // （Safari 内部也使用 callback 路径，两端行为一致）
+  const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+    audioCtx.decodeAudioData(arrayBuffer, resolve, reject)
+  })
 
   const sampleRate = audioBuffer.sampleRate
   const numChannels = audioBuffer.numberOfChannels
+  console.log('[audioConverter] 解码完成 duration:', audioBuffer.duration.toFixed(3), 's  channels:', numChannels, 'sampleRate:', sampleRate)
 
   // 在关闭 AudioContext 之前立即复制 PCM 数据
   // getChannelData 返回的是内部 typed array 的视图，context 关闭后可能被清零
   const channelData = Array.from({ length: numChannels }, (_, i) =>
     new Float32Array(audioBuffer.getChannelData(i)),
   )
+
+  // 检查每个声道的最大振幅，为 0 说明解码出来就是静音
+  channelData.forEach((ch, i) => {
+    const max = ch.reduce((m, v) => Math.max(m, Math.abs(v)), 0)
+    console.log(`[audioConverter] channel[${i}] maxAmplitude:`, max.toFixed(6))
+  })
+
   await audioCtx.close()
 
   // 混音为单声道 Float32
@@ -45,7 +70,9 @@ export async function convertToWav(blob: Blob): Promise<Blob> {
 
   // 写 WAV
   const wavBuffer = encodeWav(pcm, sampleRate)
-  return new Blob([wavBuffer], { type: 'audio/wav' })
+  const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' })
+  console.log('[audioConverter] WAV 生成完成，size:', wavBlob.size)
+  return wavBlob
 }
 
 function float32ToInt16(float32: Float32Array): Int16Array {
