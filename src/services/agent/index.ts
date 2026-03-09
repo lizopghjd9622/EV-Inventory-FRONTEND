@@ -97,12 +97,16 @@ async function streamAgentMp(
       header,
       formData: data || {},
       enableChunked: true,
-      success: () => {
-        // 请求完成，处理剩余 buffer
-        if (buffer.trim()) {
-           for (const { eventType, data } of parseSseChunk(buffer)) {
-             dispatchEvent(eventType as AgentEventType, data, handlers)
-           }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      success: (res: any) => {
+        // 若 onChunkReceived 已触发，buffer 中保留末尾未结束片段
+        // 若 onChunkReceived 未触发（基础库不支持 uploadFile enableChunked），
+        // 全量数据在 res.data，此时 buffer 为空，从 res.data 兜底解析
+        const toProcess = buffer || (typeof res?.data === 'string' ? res.data : '')
+        if (toProcess.trim()) {
+          for (const { eventType, data } of parseSseChunk(toProcess)) {
+            dispatchEvent(eventType as AgentEventType, data, handlers)
+          }
         }
         onDone?.()
       },
@@ -119,10 +123,20 @@ async function streamAgentMp(
       data,
       enableChunked: true,
       responseType: 'arraybuffer',
-      success: () => {
-        // 请求完成，处理剩余 buffer
-        if (buffer.trim()) {
-           for (const { eventType, data } of parseSseChunk(buffer)) {
+      success: (res: any) => {
+        // responseType: 'arraybuffer' 时 res.data 是 ArrayBuffer
+        // 若 onChunkReceived 未触发，从 res.data 兜底解析
+        let fallback = ''
+        if (!buffer && res?.data) {
+          if (typeof res.data === 'string') {
+            fallback = res.data
+          } else if (res.data instanceof ArrayBuffer) {
+            try { fallback = new TextDecoder('utf-8').decode(res.data) } catch { /* ignore */ }
+          }
+        }
+        const toProcess = buffer || fallback
+        if (toProcess.trim()) {
+           for (const { eventType, data } of parseSseChunk(toProcess)) {
              dispatchEvent(eventType as AgentEventType, data, handlers)
            }
         }

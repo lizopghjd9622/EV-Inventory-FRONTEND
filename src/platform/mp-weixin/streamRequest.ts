@@ -55,6 +55,15 @@ export function streamUploadAudioMp(
   handlers: StreamHandlers,
 ): void {
   const { onEvent, onDone, onError } = handlers
+
+  // 录音文件路径为空时快速失败，避免 wx.uploadFile 收到 undefined 后行为不可预期
+  if (!filePath) {
+    console.error('[streamUploadAudioMp] filePath 为空，无法上传')
+    onError?.(new Error('无法获取录音临时路径'))
+    onDone()
+    return
+  }
+
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
   let buffer = ''
@@ -76,8 +85,11 @@ export function streamUploadAudioMp(
     }
   }
 
+  const uploadUrl = `${baseUrl}/voice/orders?order_type=${orderType}`
+  console.log('[streamUploadAudioMp] 开始上传，URL:', uploadUrl)
+
   const uploadTask = wx.uploadFile({
-    url: `${baseUrl}/voice/orders?order_type=${orderType}`,
+    url: uploadUrl,
     filePath,
     name: 'file',
     header: {
@@ -85,13 +97,27 @@ export function streamUploadAudioMp(
     },
     enableChunked: true,
     success(res) {
-      if (res.statusCode >= 400) {
-        onError?.(new Error(`HTTP ${res.statusCode}`))
+      console.log('[streamUploadAudioMp] success statusCode:', res.statusCode, 'buffer长度:', buffer.length)
+      // 3xx 重定向：微信跟随重定向后改用 GET，SSE 数据不会到达
+      // 需要在服务端把 301/302 改为 307/308 以保留 POST 方法
+      if (res.statusCode >= 300 && res.statusCode < 400) {
+        console.error('[streamUploadAudioMp] 检测到重定向(', res.statusCode, ')，POST 被改成 GET，SSE 数据丢失。请将服务端重定向改为 307/308。')
+        onError?.(new Error(`服务端重定向 (${res.statusCode})，请联系后端修改为 307 永久重定向`))
+        onDone()
         return
       }
-      // 处理剩余缓冲
-      if (buffer.trim()) {
-        const events = parseSseChunk(buffer)
+      if (res.statusCode >= 400) {
+        console.error('[streamUploadAudioMp] HTTP 错误:', res.statusCode)
+        onError?.(new Error(`HTTP ${res.statusCode}`))
+        onDone()
+        return
+      }
+      // 若 onChunkReceived 已触发，buffer 中保留末尾未结束片段
+      // 若 onChunkReceived 未触发（基础库不支持 uploadFile enableChunked），
+      // 全量数据在 res.data，此时 buffer 为空，从 res.data 兜底解析
+      const toProcess = buffer || (typeof res?.data === 'string' ? res.data : '')
+      if (toProcess.trim()) {
+        const events = parseSseChunk(toProcess)
         for (const { eventType, data } of events) {
           if (Object.values(SseEventType).includes(eventType as SseEventType)) {
             onEvent(eventType as SseEventType, data as SsePayload)
@@ -101,6 +127,7 @@ export function streamUploadAudioMp(
       onDone()
     },
     fail(err) {
+      console.error('[streamUploadAudioMp] fail:', err.errMsg)
       onError?.(new Error(err.errMsg))
     },
   })
@@ -108,6 +135,7 @@ export function streamUploadAudioMp(
   uploadTask.onChunkReceived((res) => {
     const decoder = new TextDecoder('utf-8')
     const text = decoder.decode(new Uint8Array(res.data))
+    console.log('[streamUploadAudioMp] onChunkReceived, 长度:', res.data.byteLength, '内容前100字符:', text.slice(0, 100))
     handleChunkData(text)
   })
 }

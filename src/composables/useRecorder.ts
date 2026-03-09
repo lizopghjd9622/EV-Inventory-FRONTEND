@@ -26,6 +26,9 @@ export function useRecorder(options: UseRecorderOptions = {}) {
   let dataRequestInterval: ReturnType<typeof setInterval> | null = null
   // 小程序分支：复用同一个 recorderManager 实例
   let uniRecorderManager: ReturnType<typeof uni.getRecorderManager> | null = null
+  // 重置标志：调用 stop() 是为了清理状态再重新 start()，此时 onStop/onError 不应触发上层回调
+  let mpRecorderResetting = false
+  let mpRecorderRestartTimer: ReturnType<typeof setTimeout> | null = null
 
   // 初始化小程序录音管理器（单例模式）
   // 避免在 startRecording 中重复绑定事件导致内存泄漏或多次回调
@@ -36,9 +39,34 @@ export function useRecorder(options: UseRecorderOptions = {}) {
     typeof uni.getRecorderManager === 'function'
   ) {
     uniRecorderManager = uni.getRecorderManager()
-    
+
+    function _startMpRecorder() {
+      uniRecorderManager?.start({ duration: MAX_RECORD_SECONDS * 1000, format: 'mp3' })
+    }
+
     uniRecorderManager.onStop((res: { tempFilePath: string }) => {
+      // 重置阶段：stop() 已确认，立即重新启动
+      if (mpRecorderResetting) {
+        if (mpRecorderRestartTimer !== null) {
+          clearTimeout(mpRecorderRestartTimer)
+          mpRecorderRestartTimer = null
+        }
+        mpRecorderResetting = false
+        _startMpRecorder()
+        return
+      }
+
       isRecording.value = false
+      // 校验 tempFilePath，录音过短或出错时可能为空
+      if (!res.tempFilePath) {
+        console.error('[useRecorder] onStop: tempFilePath 为空，录音可能过短或出错')
+        if (stopResolve) {
+          const resolve = stopResolve
+          stopResolve = null
+          resolve({} as unknown as Blob)
+        }
+        return
+      }
       // 小程序不支持 Blob，直接透传临时文件路径
       // 平台适配层（streamUploadAudioMp）会取 _mpTempPath 直接上传
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,6 +79,17 @@ export function useRecorder(options: UseRecorderOptions = {}) {
     })
 
     uniRecorderManager.onError((err) => {
+      // 重置阶段的错误（录音器空闲时 stop() 返回错误）：直接启动录音
+      if (mpRecorderResetting) {
+        if (mpRecorderRestartTimer !== null) {
+          clearTimeout(mpRecorderRestartTimer)
+          mpRecorderRestartTimer = null
+        }
+        mpRecorderResetting = false
+        _startMpRecorder()
+        return
+      }
+
       console.error('Recorder error:', err)
       isRecording.value = false
       if (stopResolve) {
@@ -242,8 +281,17 @@ export function useRecorder(options: UseRecorderOptions = {}) {
           }
         })
     } else {
-      // 小程序分支
-      uniRecorderManager?.start({ duration: MAX_RECORD_SECONDS * 1000, format: 'mp3' })
+      // 小程序分支：先 stop() 确保录音器状态干净，再 start()
+      // 避免 "is recording or paused" 错误（上次录音因异常未正常结束时）
+      mpRecorderResetting = true
+      uniRecorderManager?.stop()
+      // 兜底：若录音器本已空闲，300ms 内不触发 onStop/onError，直接启动
+      mpRecorderRestartTimer = setTimeout(() => {
+        if (mpRecorderResetting) {
+          mpRecorderResetting = false
+          uniRecorderManager?.start({ duration: MAX_RECORD_SECONDS * 1000, format: 'mp3' })
+        }
+      }, 300)
     }
   }
 

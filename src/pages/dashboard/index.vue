@@ -62,7 +62,9 @@
           <text class="dashboard-page__bubble-text">⚠ {{ msg.error }}</text>
         </view>
       </view>
-    </scroll-view>
+    <!-- scroll-view 底部占位，确保内容不被输入框遮挡（小程序 padding-bottom 不可靠） -->
+    <view class="dashboard-page__scroll-anchor" />
+  </scroll-view>
 
     <!-- 输入区 -->
     <view class="dashboard-page__input-bar">
@@ -155,9 +157,14 @@ const { startRecording, stopRecording } = useRecorder({
 })
 
 // ---------- Scroll ----------
+// 小程序 scroll-view 的 scroll-top 绑定：值不变时不触发滚动
+// 需要先重置再设大值，确保每次都能滚到底
 function scrollToBottom() {
   nextTick(() => {
-    scrollTop.value = 999999
+    scrollTop.value = scrollTop.value > 0 ? scrollTop.value - 1 : 0
+    nextTick(() => {
+      scrollTop.value = 999999
+    })
   })
 }
 
@@ -296,10 +303,14 @@ function submitQuery(question: string, mode: 'text' | 'voice', blob?: Blob) {
   &__history {
     flex: 1;
     padding: 24rpx 24rpx 0;
-    // 底部留出：输入框高度(~120rpx) + tabBar(100rpx) + buffer
-    padding-bottom: 240rpx;
     overflow-y: auto;
     box-sizing: border-box;
+  }
+
+  // scroll-view 内底部占位，替代 padding-bottom（小程序 scroll-view 内 padding 不计入可滚动高度）
+  &__scroll-anchor {
+    height: 260rpx;
+    flex-shrink: 0;
   }
 
   // ----- 空状态 -----
