@@ -43,6 +43,7 @@
             @record-start="handleRecordStart(OrderType.SALES)"
             @record-stop="handleRecordStop"
             @record-timeout="handleRecordTimeout"
+            @record-too-short="handleRecordTooShort"
           />
           <text class="home-page__button-label">销售录单</text>
           <text class="home-page__button-desc">出库销售单</text>
@@ -56,6 +57,7 @@
             @record-start="handleRecordStart(OrderType.PURCHASE)"
             @record-stop="handleRecordStop"
             @record-timeout="handleRecordTimeout"
+            @record-too-short="handleRecordTooShort"
           />
           <text class="home-page__button-label">进货录单</text>
           <text class="home-page__button-desc">入库采购单</text>
@@ -119,6 +121,11 @@ async function handleRecordStop(blob: Blob) {
 
 function handleRecordTimeout() {
   uni.showToast({ title: '已达最大时长，自动发送', icon: 'none' })
+}
+
+function handleRecordTooShort() {
+  store.setStatus(RecordStatus.Idle)
+  uni.showToast({ title: '录音时间太短，请重新录音', icon: 'none' })
 }
 
 

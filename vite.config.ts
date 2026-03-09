@@ -15,6 +15,9 @@ export default defineConfig({
       scss: {
         // legacy JS API 使用 includePaths（uni-app 不支持新 API 的 loadPaths）
         includePaths: [resolve(__dirname, 'src')],
+        // 静默第三方库（uview-plus）触发的 Dart Sass 弃用警告
+        // legacy-js-api：uni-app 构建工具使用旧版 JS API；import：@import 语法
+        silenceDeprecations: ['legacy-js-api', 'import'],
       },
     },
   },

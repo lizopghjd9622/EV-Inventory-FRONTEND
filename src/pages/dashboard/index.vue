@@ -6,7 +6,7 @@
         <text class="dashboard-page__header-logo-icon">⚡</text>
       </view>
       <view class="dashboard-page__header-info">
-        <text class="dashboard-page__header-title">老板助手</text>
+        <text class="dashboard-page__header-title">老板助手1</text>
         <text class="dashboard-page__header-sub">EV 库存智能查询</text>
       </view>
     </view>
@@ -176,16 +176,25 @@ function handleTextQuery() {
 }
 
 // ---------- Voice query ----------
+let voiceStartTime: number | null = null
+
 function handleVoiceStart() {
   if (isStreaming.value) return
   isVoiceRecording.value = true
+  voiceStartTime = Date.now()
   startRecording()
 }
 
 async function handleVoiceEnd() {
   if (!isVoiceRecording.value) return
   isVoiceRecording.value = false
+  const duration = voiceStartTime !== null ? Date.now() - voiceStartTime : 0
+  voiceStartTime = null
   const blob = await stopRecording()
+  if (duration < 1000) {
+    uni.showToast({ title: '录音时间太短，请重新录音', icon: 'none' })
+    return
+  }
   if (!blob || blob.size === 0) return
   submitQuery('🎙 语音提问', 'voice', blob)
 }

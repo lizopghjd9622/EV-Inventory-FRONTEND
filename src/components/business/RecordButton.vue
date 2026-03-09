@@ -5,6 +5,7 @@
     data-testid="record-btn"
     @touchstart.prevent="handleStart"
     @touchend.prevent="handleStop"
+    @touchcancel.prevent="handleStop"
     @mousedown="handleStart"
     @mouseup="handleStop"
   >
@@ -32,6 +33,7 @@ const emit = defineEmits<{
   'record-start': []
   'record-stop': [blob: Blob]
   'record-timeout': []
+  'record-too-short': []
 }>()
 
 // ---------- Recorder ----------
@@ -40,14 +42,27 @@ const { startRecording, stopRecording, isRecording } = useRecorder({
 })
 
 // ---------- Handlers ----------
+let recordStartTime: number | null = null
+
 function handleStart() {
   if (props.disabled) return
+  recordStartTime = Date.now()
   startRecording()
   emit('record-start')
 }
 
 async function handleStop() {
+  const duration = recordStartTime !== null ? Date.now() - recordStartTime : 0
+  recordStartTime = null
+
   const blob = await stopRecording()
+
+  // 录音时长不足 1 秒，提示用户重录，不发送后端
+  if (duration < 1000) {
+    emit('record-too-short')
+    return
+  }
+
   // 兼容 H5 (size) 和小程序 (_mpTempPath)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (blob && (blob.size > 0 || (blob as any)._mpTempPath)) {
