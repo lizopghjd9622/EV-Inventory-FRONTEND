@@ -6,7 +6,7 @@
         <text class="dashboard-page__header-logo-icon">⚡</text>
       </view>
       <view class="dashboard-page__header-info">
-        <text class="dashboard-page__header-title">老板助手1</text>
+        <text class="dashboard-page__header-title">老板助手</text>
         <text class="dashboard-page__header-sub">EV 库存智能查询</text>
       </view>
     </view>
