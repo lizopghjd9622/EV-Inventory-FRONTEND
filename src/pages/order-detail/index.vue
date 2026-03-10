@@ -6,6 +6,23 @@
       </text>
     </view>
 
+    <!-- 汇总摘要 -->
+    <view v-if="store.items.length > 0 && store.status !== RecordStatus.Streaming" class="order-detail-page__summary">
+      <view class="order-detail-page__summary-item">
+        <text class="order-detail-page__summary-label">总台数</text>
+        <text class="order-detail-page__summary-value">{{ totalQuantity }} 台</text>
+      </view>
+      <view class="order-detail-page__summary-divider" />
+      <view class="order-detail-page__summary-item">
+        <text class="order-detail-page__summary-label">
+          {{ store.orderType === OrderType.SALES ? '总金额' : '总成本' }}
+        </text>
+        <text class="order-detail-page__summary-value order-detail-page__summary-value--amount">
+          ¥{{ totalAmount.toLocaleString() }}
+        </text>
+      </view>
+    </view>
+
     <!-- 流式条目列表 -->
     <StreamingItemList
       :items="store.items"
@@ -28,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onUnload } from '@dcloudio/uni-app'
 import { useVoiceOrderStore } from '@/stores/voiceOrder'
 import { requireAuth } from '@/utils/routeGuard'
@@ -43,6 +60,17 @@ const store = useVoiceOrderStore()
 
 // ---------- State ----------
 const confirming = ref(false)
+
+// ---------- Computed ----------
+const totalQuantity = computed(() =>
+  store.items.reduce((sum, item) => sum + Number(item.quantity), 0),
+)
+const totalAmount = computed(() =>
+  store.items.reduce((sum, item) => {
+    const price = item.price ?? item.cost ?? 0
+    return sum + Number(item.quantity) * Number(price)
+  }, 0),
+)
 
 // ---------- Lifecycle ----------
 onMounted(() => {
@@ -121,6 +149,46 @@ async function handleConfirm() {
     font-size: 36rpx;
     font-weight: 600;
     color: var(--color-text-primary, #303133);
+  }
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    margin: 20rpx 32rpx 0;
+    padding: 24rpx 32rpx;
+    background: #fff;
+    border-radius: 20rpx;
+    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  }
+
+  &__summary-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6rpx;
+  }
+
+  &__summary-label {
+    font-size: 24rpx;
+    color: #999;
+  }
+
+  &__summary-value {
+    font-size: 32rpx;
+    font-weight: 700;
+    color: #1a1a1a;
+
+    &--amount {
+      color: #00796b;
+    }
+  }
+
+  &__summary-divider {
+    width: 1rpx;
+    height: 48rpx;
+    background: #e5e5e5;
+    margin: 0 24rpx;
   }
 }
 </style>

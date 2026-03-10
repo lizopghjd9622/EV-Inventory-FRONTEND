@@ -6,7 +6,7 @@ import Request from 'luch-request'
  */
 const http = new Request({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
-  timeout: 10000,
+  timeout: 60000,
 })
 
 /* 请求拦截器：注入 Bearer Token */

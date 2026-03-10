@@ -9,7 +9,7 @@
 
       <!-- 标题 -->
       <text class="purchase-page__title">进货录单</text>
-      <text class="purchase-page__desc">长按按钮，语音创建进货单</text>
+      <text class="purchase-page__desc">语音录单 或 上传 Excel 批量导入</text>
 
       <!-- 状态提示 -->
       <view class="purchase-page__status-hint">
@@ -43,6 +43,18 @@
         />
       </view>
 
+      <!-- 分隔线 -->
+      <view class="purchase-page__divider">
+        <view class="purchase-page__divider-line" />
+        <text class="purchase-page__divider-text">或</text>
+        <view class="purchase-page__divider-line" />
+      </view>
+
+      <!-- Excel 批量导入 -->
+      <view class="purchase-page__excel-wrap" :class="{ 'purchase-page__excel-wrap--disabled': store.status !== RecordStatus.Idle }">
+        <ExcelPurchaseImport @imported="handleExcelImported" />
+      </view>
+
       <!-- 手动录单 -->
       <view
         class="purchase-page__manual-entry"
@@ -54,7 +66,7 @@
 
       <!-- 提示 -->
       <view class="purchase-page__tips">
-        <text class="purchase-page__tips-text">💡 说出品名、数量、单价，自动生成进货单</text>
+        <text class="purchase-page__tips-text">💡 说出品名、数量、单价，或上传 Excel 发车表</text>
       </view>
     </view>
 
@@ -71,6 +83,7 @@ import { requireAuth } from '@/utils/routeGuard'
 import { OrderType, RecordStatus } from '@/constants'
 import RecordButton from '@/components/business/RecordButton.vue'
 import BottomTabBar from '@/components/business/BottomTabBar.vue'
+import ExcelPurchaseImport from '@/components/business/ExcelPurchaseImport.vue'
 
 const store = useVoiceOrderStore()
 const voiceOrder = useVoiceOrder()
@@ -110,6 +123,23 @@ function handleRecordTooShort() {
 function handleManualEntry() {
   if (store.status !== RecordStatus.Idle) return
   store.initSession(OrderType.PURCHASE)
+  store.setStatus(RecordStatus.Done)
+}
+
+function handleExcelImported(
+  items: Array<{ name: string; quantity: number; unit: string; cost: number }>,
+) {
+  if (store.status !== RecordStatus.Idle) return
+  store.initSession(OrderType.PURCHASE)
+  items.forEach((item) => {
+    store.appendItem({
+      clientId: `excel-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      cost: item.cost,
+    })
+  })
   store.setStatus(RecordStatus.Done)
 }
 </script>
@@ -226,6 +256,36 @@ function handleManualEntry() {
     display: flex;
     justify-content: center;
     margin-bottom: 40rpx;
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 20rpx;
+    margin-bottom: 32rpx;
+  }
+
+  &__divider-line {
+    flex: 1;
+    height: 1rpx;
+    background: #e0e0e0;
+  }
+
+  &__divider-text {
+    font-size: 24rpx;
+    color: #bbb;
+    flex-shrink: 0;
+  }
+
+  &__excel-wrap {
+    width: 100%;
+    margin-bottom: 32rpx;
+
+    &--disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
   }
 
   &__manual-entry {
